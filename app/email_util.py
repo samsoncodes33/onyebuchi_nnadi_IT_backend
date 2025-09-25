@@ -63,47 +63,49 @@ def send_welcome_email(receiver_email: str, user_name: str, role: str, reg_no: s
 
 def send_welcome_email_lecturer(receiver_email: str, lecturer_name: str, role: str, password: str) -> None:
     """
-    Send a welcome email to a new lecturer with department logo from IMAGE_URL.
-    SMTP + Image settings are taken from Config.
+    Send a welcome email to a new lecturer with department logo.
+    Aligns with the lecturer registration system: uses proper name formatting and role.
     """
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Welcome to the Department Faculty"
-    msg["From"] = EMAIL_USERNAME
-    msg["To"] = receiver_email
-
-    # HTML body
-    html_content = f"""
-    <html>
-    <head></head>
-    <body style="font-family: Arial, sans-serif; color: #333; background-color: #f9f9f9; padding: 20px;">
-        <div style="max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            <img src="{LECTURER_IMAGE_URL}" alt="Department Logo" style="max-width: 150px; margin-bottom: 20px;">
-            <h2 style="color: #2c3e50;">Welcome,{lecturer_name}!</h2>
-            <p style="font-size: 16px;">We are pleased to inform you that your Department account has been successfully created.</p>
-            <p style="font-size: 16px;"><b>Designation:</b> {role}</p>
-            <p style="font-size: 16px; color: #27ae60;"><b>Password:</b> {password}</p>
-            <p style="font-size: 15px; line-height: 1.5;">
-                We look forward to your valuable contributions to our department's academic and research activities. 
-                Your expertise will greatly enhance the growth and excellence of our institution.
-            </p>
-            <p style="margin-top: 30px; font-weight: bold; color: #555;">Sincerely,<br>The Department Team</p>
-        </div>
-    </body>
-    </html>
-    """
-
-    msg.attach(MIMEText(html_content, "html"))
-
-    # Send the email
     try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Welcome to the Department Faculty"
+        msg["From"] = EMAIL_USERNAME
+        msg["To"] = receiver_email
+
+        # HTML body with proper formatting
+        html_content = f"""
+        <html>
+        <head></head>
+        <body style="font-family: Arial, sans-serif; color: #333; background-color: #f9f9f9; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <img src="{LECTURER_IMAGE_URL}" alt="Department Logo" style="max-width: 150px; margin-bottom: 20px;">
+                <h2 style="color: #2c3e50;">Welcome, {lecturer_name}!</h2>
+                <p style="font-size: 16px;">Your Department account has been successfully created.</p>
+                <p style="font-size: 16px;"><b>Designation:</b> {role.capitalize()}</p>
+                <p style="font-size: 16px; color: #27ae60;"><b>Password:</b> {password}</p>
+                <p style="font-size: 15px; line-height: 1.5;">
+                    We look forward to your valuable contributions to our department's academic and research activities. 
+                    Your expertise will greatly enhance the growth and excellence of our institution.
+                </p>
+                <p style="margin-top: 30px; font-weight: bold; color: #555;">Sincerely,<br>The Department Team</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(html_content, "html"))
+
+        # Send the email
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
             server.sendmail(EMAIL_USERNAME, receiver_email, msg.as_string())
+
         print(f"Email sent successfully to {receiver_email}")
+
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        print(f"Failed to send email to {receiver_email}: {e}")
+
 
 
 def send_role_change_email(receiver_email: str, student_name: str, old_role: str, new_role: str) -> None:
