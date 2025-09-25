@@ -493,23 +493,23 @@ api.add_resource(LecturerResetPasswordUsingOTP, "/api/lecturer/reset-password-us
 class LecturerLogin(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("email", type=str, required=True, help="Lecturer email is required")
+        self.parser.add_argument("reg_no", type=str, required=True, help="Lecturer registration number is required")
         self.parser.add_argument("password", type=str, required=True, help="Password is required")
 
     def post(self):
         args = self.parser.parse_args()
-        email = args["email"].strip().lower()
+        reg_no = args["reg_no"].strip().upper()
         password = args["password"].strip()
 
-        # ✅ Check if lecturer exists
-        lecturer = lecturers.find_one({"email": email})
+        # ✅ Check if lecturer exists by reg_no
+        lecturer = lecturers.find_one({"reg_no": reg_no})
         if not lecturer:
-            return {"error": "Invalid email or password"}, 401
+            return {"error": "Invalid registration number or password"}, 401
 
         # ✅ Verify password
         stored_password = lecturer.get("password")
         if not stored_password or not bcrypt.checkpw(password.encode("utf-8"), stored_password.encode("utf-8")):
-            return {"error": "Invalid email or password"}, 401
+            return {"error": "Invalid registration number or password"}, 401
 
         # Optional: Generate JWT token if needed
         # token = create_jwt_for_lecturer(lecturer)
@@ -526,4 +526,3 @@ class LecturerLogin(Resource):
 
 # ✅ Add endpoint
 api.add_resource(LecturerLogin, "/api/lecturer/login")
-
