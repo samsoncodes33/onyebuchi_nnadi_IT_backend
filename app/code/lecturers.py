@@ -15,6 +15,7 @@ import io
 class RegisterLecturer(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
+        self.parser.add_argument("reg_no", type=str, required=True, help="Registration number is required")
         self.parser.add_argument("surname", type=str, required=True, help="Surname is required")
         self.parser.add_argument("first_name", type=str, required=True, help="First name is required")
         self.parser.add_argument("other_names", type=str, required=False)  # optional
@@ -27,6 +28,7 @@ class RegisterLecturer(Resource):
         args = self.parser.parse_args()
 
         # ✅ Normalize input
+        reg_no = args["reg_no"].strip().upper()
         surname = normalize_name(args["surname"])
         first_name = normalize_name(args["first_name"])
         other_names = normalize_name(args["other_names"]) if args.get("other_names") else None
@@ -55,7 +57,10 @@ class RegisterLecturer(Resource):
         else:
             title = None  # default if not provided
 
-        # ✅ Check duplicates
+        # ✅ Check duplicates (reg_no, phone, email)
+        if lecturers.find_one({"reg_no": reg_no}):
+            raise BadRequest("A lecturer with this registration number already exists")
+
         if lecturers.find_one({"phone_number": phone_number}):
             raise BadRequest("A lecturer with this phone number already exists")
 
@@ -70,6 +75,7 @@ class RegisterLecturer(Resource):
 
         # ✅ Save new lecturer
         new_lecturer = {
+            "reg_no": reg_no,   # 🔑 Primary Key
             "surname": surname,
             "first_name": first_name,
             "other_names": other_names,
@@ -101,6 +107,7 @@ class RegisterLecturer(Resource):
 
 # ✅ Register endpoint
 api.add_resource(RegisterLecturer, "/api/register/lecturer")
+
 
 
 class DemoteExco(Resource):
