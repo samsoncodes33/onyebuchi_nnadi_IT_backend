@@ -96,3 +96,25 @@ class GetAllMembersAndCount(Resource):
             return {"error": str(e)}, 500
 
 api.add_resource(GetAllMembersAndCount, "/members/stats")
+
+
+class GetAnnouncement(Resource):
+    def get(self):
+        # Fetch all announcements from the database
+        all_announcements = list(announcement.find({}, {"_id": 0}))  # Exclude MongoDB _id
+
+        if not all_announcements:
+            return {"message": "No announcements found"}, 404
+
+        # Convert datetime objects to ISO format strings
+        for ann in all_announcements:
+            if "created_at" in ann:
+                ann["created_at"] = ann["created_at"].isoformat()
+
+        # Sort by creation date (most recent first)
+        all_announcements.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+
+        return {"announcements": all_announcements}, 200
+
+# Add resource to API
+api.add_resource(GetAnnouncement, "/get/announcement")
