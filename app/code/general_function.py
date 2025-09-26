@@ -64,8 +64,7 @@ api.add_resource(Announcement, "/announcement")
 
 class GetAllMembersAndCount(Resource):
     def get(self):
-        try:
-            # Get all members but exclude _id and password
+        try:            
             all_members_cursor = members.find({}, {"_id": 0, "password": 0})
             
             # Convert datetime fields to string
@@ -96,5 +95,4 @@ class GetAllMembersAndCount(Resource):
         except Exception as e:
             return {"error": str(e)}, 500
 
-# Add resource route
 api.add_resource(GetAllMembersAndCount, "/members/stats")
