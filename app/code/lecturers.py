@@ -93,7 +93,7 @@ class RegisterLecturer(Resource):
         lecturer_name = f"{title} {full_name}" if title else full_name
 
         # ✅ Send welcome email
-        send_welcome_email_lecturer(
+        EmailSender.send_welcome_email_lecturer(
             receiver_email=email,
             lecturer_name=lecturer_name,
             role=new_lecturer["role"],
@@ -160,7 +160,7 @@ class DemoteExco(Resource):
         student_email = student.get("email")
         student_name = f"{student.get('surname', '')} {student.get('first_name', '')}".strip()
 
-        send_role_change_email(
+        EmailSender.send_role_change_email(
             receiver_email=student_email,
             student_name=student_name,
             old_role="Exco",
@@ -227,7 +227,7 @@ class PromoteStudent(Resource):
         student_email = student.get("email")
         student_name = f"{student.get('surname', '')} {student.get('first_name', '')}".strip()
 
-        send_role_change_email(
+        EmailSender.send_role_change_email(
             receiver_email=student_email,
             student_name=student_name,
             old_role="Student",
@@ -377,7 +377,7 @@ class ChangeLecturerPassword(Resource):
         lecturer_name = f"{lecturer.get('title', '')} {full_name}".strip()
 
         # 📧 Notify lecturer (no new password shown)
-        update_lecturer_email(receiver_email=email, lecturer_name=lecturer_name)
+        EmailSender.send_lecturer_password_change_email(receiver_email=email, lecturer_name=lecturer_name)
 
         return jsonify({
             "message": "Password updated successfully, email notification sent"
@@ -411,8 +411,12 @@ class ForgotPasswordLecturer(Resource):
                            f"{existing_otp_expiry.strftime('%Y-%m-%d %H:%M:%S UTC')}."
             })
 
-        # ✅ Get lecturer name
-        full_name = f"{lecturer.get('surname', '')} {lecturer.get('first_name', '')}".strip()
+        # ✅ Get lecturer name with title
+        title = lecturer.get("title", "").strip()  # e.g., Dr., Prof., Mr., Mrs.
+        surname = lecturer.get("surname", "").strip()
+        first_name = lecturer.get("first_name", "").strip()
+
+        full_name = f"{title} {surname} {first_name}".strip()
         if not full_name:
             full_name = "Lecturer"
 
@@ -429,7 +433,7 @@ class ForgotPasswordLecturer(Resource):
         )
 
         # ✅ Send OTP email
-        send_lecturer_otp_email(
+        EmailSender.send_lecturer_otp_email(
             receiver_email=email,
             user_name=full_name,
             otp=otp
@@ -442,6 +446,7 @@ class ForgotPasswordLecturer(Resource):
 
 # ✅ Add endpoint to API
 api.add_resource(ForgotPasswordLecturer, "/api/lecturer/forgot-password")
+
 
 
 class LecturerResetPasswordUsingOTP(Resource):

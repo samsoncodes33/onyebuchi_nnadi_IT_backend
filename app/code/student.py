@@ -101,7 +101,7 @@ class Register(Resource):
 
         # Send welcome email
         full_name = f"{surname} {first_name}" + (f" {other_names}" if other_names else "")
-        send_welcome_email(
+        EmailSender.send_welcome_email(
             receiver_email=email,
             user_name=full_name,
             role=new_user["role"],
@@ -674,7 +674,7 @@ class ChangePassword(Resource):
 
         # ✅ Send change password email notification
         full_name = f"{student.get('surname', '')} {student.get('first_name', '')}".strip()
-        update_student_email(
+        EmailSender.send_password_change_email(
             receiver_email=student["email"],
             user_name=full_name,
             reg_no=student["reg_no"]
@@ -692,7 +692,9 @@ api.add_resource(ChangePassword, "/api/change-password")
 class ForgotPasswordStudent(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("reg_no", type=str, required=True, help="Registration number is required")
+        self.parser.add_argument(
+            "reg_no", type=str, required=True, help="Registration number is required"
+        )
 
     def post(self):
         args = self.parser.parse_args()
@@ -712,9 +714,12 @@ class ForgotPasswordStudent(Resource):
         existing_otp_expiry = student.get("otp_expiry")
         if existing_otp_expiry and existing_otp_expiry > datetime.utcnow():
             return jsonify({
-                "message": f"An OTP has already been sent to {email}. Please check your email. "
-                           "It will expire at "
-                           f"{existing_otp_expiry.strftime('%Y-%m-%d %H:%M:%S UTC')}."
+                "status": "pending",
+                "message": (
+                    f"An OTP has already been sent to {email}. "
+                    "Please check your email. "
+                    f"It will expire at {existing_otp_expiry.strftime('%Y-%m-%d %H:%M:%S UTC')}."
+                )
             })
 
         # ✅ Generate a new 6-digit OTP
@@ -730,7 +735,7 @@ class ForgotPasswordStudent(Resource):
         )
 
         # ✅ Send OTP email
-        send_student_otp_email(
+        EmailSender.send_student_otp_email(
             receiver_email=email,
             user_name=student.get("full_name", "Student"),
             reg_no=reg_no,
@@ -738,12 +743,14 @@ class ForgotPasswordStudent(Resource):
         )
 
         return jsonify({
+            "status": "success",
             "message": f"OTP sent to {email}. It will expire in 5 minutes."
         })
 
 
 # ✅ Add endpoint to API
 api.add_resource(ForgotPasswordStudent, "/api/student/forgot-password")
+
 
 
 class StudentResetPasswordUsingOTP(Resource):
