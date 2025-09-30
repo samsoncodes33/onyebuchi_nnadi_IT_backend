@@ -943,30 +943,23 @@ class SortedStudentsSummary(Resource):
         # Sort students alphabetically by surname
         students_sorted = sorted(students, key=lambda s: s.get("surname", "").lower())
 
-        # Count roles
-        roles_count = {}
-        for s in students_sorted:
-            role = s.get("role", "student").lower()
-            roles_count[role] = roles_count.get(role, 0) + 1
-
-        # Count gender
-        gender_count = {}
-        for s in students_sorted:
-            gender = s.get("gender", "unknown").lower()
-            gender_count[gender] = gender_count.get(gender, 0) + 1
+        # Count male and female separately
+        male_count = sum(1 for s in students_sorted if s.get("gender", "").lower() == "male")
+        female_count = sum(1 for s in students_sorted if s.get("gender", "").lower() == "female")
 
         # Total students
         total_students = len(students_sorted)
 
         response_data = {
             "total_students": total_students,
-            "roles_count": roles_count,
-            "gender_count": gender_count,
-            "students": students_sorted
+            "male": male_count,
+            "female": female_count,
+            "students": students_sorted  # keep the sorted students
         }
 
-        return response_data
+        return response_data, 200
 
 
 # Route
 api.add_resource(SortedStudentsSummary, "/students/summary-sorted")
+
