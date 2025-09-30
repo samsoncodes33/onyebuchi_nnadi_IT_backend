@@ -118,3 +118,39 @@ class GetAnnouncement(Resource):
 
 # Add resource to API
 api.add_resource(GetAnnouncement, "/get/announcement")
+
+
+from flask import request
+from flask_restful import Resource
+
+class GetStudentsByGender(Resource):
+    def post(self):
+        try:
+            # Ensure JSON body
+            if not request.is_json:
+                return {"error": "Request body must be JSON"}, 400
+
+            data = request.get_json(silent=True)
+            gender = data.get("gender", "").strip().lower()
+            if gender not in ["male", "female"]:
+                return {"error": "Invalid gender. Provide 'male' or 'female'."}, 400
+
+            # Fetch students filtered by gender
+            students_by_gender = list(members.find(
+                {"gender": {"$regex": f"^{gender}$", "$options": "i"}},
+                {"_id": 0, "password": 0}  # Exclude sensitive fields
+            ))
+
+            if not students_by_gender:
+                return {"message": f"No students found for gender: {gender}"}, 404
+
+            # Optionally sort alphabetically by surname
+            students_by_gender.sort(key=lambda s: s.get("surname", "").lower())
+
+            return {"students": students_by_gender}, 200
+
+        except Exception as e:
+            return {"error": str(e)}, 500
+
+# Route
+api.add_resource(GetStudentsByGender, "/students/by-gender")
