@@ -931,3 +931,42 @@ class RegisterStudentNoMail(Resource):
 
 # ✅ Register endpoint
 api.add_resource(RegisterStudentNoMail, "/api/v1/register_student_no_mail")
+
+
+class SortedStudentsSummary(Resource):
+    def get(self):
+        # Fetch students, exclude _id and password
+        students = list(members.find({}, {"_id": 0, "password": 0}))
+        if not students:
+            return {"message": "No students found"}, 404
+
+        # Sort students alphabetically by surname
+        students_sorted = sorted(students, key=lambda s: s.get("surname", "").lower())
+
+        # Count roles
+        roles_count = {}
+        for s in students_sorted:
+            role = s.get("role", "student").lower()
+            roles_count[role] = roles_count.get(role, 0) + 1
+
+        # Count gender
+        gender_count = {}
+        for s in students_sorted:
+            gender = s.get("gender", "unknown").lower()
+            gender_count[gender] = gender_count.get(gender, 0) + 1
+
+        # Total students
+        total_students = len(students_sorted)
+
+        response_data = {
+            "total_students": total_students,
+            "roles_count": roles_count,
+            "gender_count": gender_count,
+            "students": students_sorted
+        }
+
+        return response_data
+
+
+# Route
+api.add_resource(SortedStudentsSummary, "/students/summary-sorted")
