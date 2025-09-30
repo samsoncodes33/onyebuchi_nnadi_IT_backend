@@ -836,3 +836,98 @@ class StudentLogin(Resource):
 
 # ✅ Add endpoint
 api.add_resource(StudentLogin, "/api/student/login")
+
+
+
+class RegisterStudentNoMail(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("surname", type=str, required=True, help="Surname is required")
+        self.parser.add_argument("first_name", type=str, required=True, help="First name is required")
+        self.parser.add_argument("other_names", type=str, required=False)  # optional
+        self.parser.add_argument("admission_type", type=str, required=True, help="Admission type is required")
+        self.parser.add_argument("phone_number", type=str, required=True, help="Phone number is required")
+        self.parser.add_argument("email", type=str, required=True, help="Email is required")
+        self.parser.add_argument("gender", type=str, required=True, help="Gender is required")
+        self.parser.add_argument("role", type=str, required=True, help="Role is required")
+        self.parser.add_argument("reg_no", type=str, required=True, help="Registration number is required")
+
+    def post(self):
+        args = self.parser.parse_args()
+
+        # Normalize input
+        surname = normalize_name(args["surname"])
+        first_name = normalize_name(args["first_name"])
+        other_names = normalize_name(args["other_names"]) if args.get("other_names") else None
+        admission_type = args["admission_type"].strip().lower()
+        phone_number = normalize_phone(args["phone_number"])
+        email = normalize_email(args["email"])
+        gender = args["gender"].strip().lower()
+        role = args["role"].strip().lower()
+        reg_no = args["reg_no"].strip().upper()
+
+        # ✅ Validate admission type
+        valid_admission_types = ["utme", "direct entry", "transfer admission"]
+        if admission_type not in valid_admission_types:
+            raise BadRequest(f"Admission type must be one of {valid_admission_types}")
+
+        # ✅ Validate phone number
+        if not is_valid_nigerian_number(phone_number):
+            raise BadRequest("Invalid Nigerian phone number format")
+
+        # ✅ Validate email format
+        if not is_valid_gmail(email):
+            raise BadRequest("Invalid Gmail address")
+
+        # ✅ Check duplicate email
+        if members.find_one({"email": email}):
+            raise BadRequest("A user with this email already exists")
+
+        # ✅ Validate gender
+        if gender not in ["male", "female"]:
+            raise BadRequest("Gender must be either 'Male' or 'Female'")
+
+        # ✅ Validate role
+        if role not in ["student", "exco"]:
+            raise BadRequest("Role must be one of ['Student', 'Exco']")
+
+        # ✅ Validate Reg No format
+        if not reg_no.startswith("2022/"):
+            raise BadRequest("Registration number must start with '2022/'")
+        if "/" not in reg_no[4:]:
+            raise BadRequest("Registration number must contain '/' after the first 4 digits")
+        if len(reg_no) > 11:
+            raise BadRequest("Registration number must not exceed 11 characters")
+
+        # ✅ Check duplicate reg no
+        if members.find_one({"reg_no": reg_no}):
+            raise BadRequest("A user with this registration number already exists")
+
+        # ✅ Default password (always six zeros)
+        default_password = "000000"
+
+        # ✅ Hash the password before saving
+        hashed_password = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+        # Save new user
+        new_user = {
+            "surname": surname,
+            "first_name": first_name,
+            "other_names": other_names,
+            "admission_type": normalize_word(admission_type),
+            "phone_number": phone_number,
+            "email": email,
+            "gender": normalize_word(gender),
+            "role": normalize_word(role),
+            "reg_no": reg_no,
+            "password": hashed_password
+        }
+        members.insert_one(new_user)
+
+        return jsonify({
+            "message": "Student registered successfully (no email sent)"
+        })
+
+
+# ✅ Register endpoint
+api.add_resource(RegisterStudentNoMail, "/api/v1/register_student_no_mail")

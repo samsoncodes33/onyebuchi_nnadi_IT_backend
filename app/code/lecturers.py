@@ -531,3 +531,88 @@ class LecturerLogin(Resource):
 
 # ✅ Add endpoint
 api.add_resource(LecturerLogin, "/api/lecturer/login")
+
+
+class RegisterLecturerNoMail(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("reg_no", type=str, required=True, help="Registration number is required")
+        self.parser.add_argument("surname", type=str, required=True, help="Surname is required")
+        self.parser.add_argument("first_name", type=str, required=True, help="First name is required")
+        self.parser.add_argument("other_names", type=str, required=False)  # optional
+        self.parser.add_argument("phone_number", type=str, required=True, help="Phone number is required")
+        self.parser.add_argument("email", type=str, required=True, help="Email is required")
+        self.parser.add_argument("gender", type=str, required=True, help="Gender is required")
+        self.parser.add_argument("title", type=str, required=False)  # optional
+
+    def post(self):
+        args = self.parser.parse_args()
+
+        # ✅ Normalize input
+        reg_no = args["reg_no"].strip().upper()
+        surname = normalize_name(args["surname"])
+        first_name = normalize_name(args["first_name"])
+        other_names = normalize_name(args["other_names"]) if args.get("other_names") else None
+        phone_number = normalize_phone(args["phone_number"])
+        email = normalize_email(args["email"])
+        gender = args["gender"].strip().lower()
+        title = args.get("title")
+
+        # ✅ Validate phone number
+        if not is_valid_nigerian_number(phone_number):
+            raise BadRequest("Invalid Nigerian phone number format")
+
+        # ✅ Validate email
+        if not is_valid_gmail(email):
+            raise BadRequest("Invalid Gmail address")
+
+        # ✅ Validate gender
+        if gender not in ["male", "female"]:
+            raise BadRequest("Gender must be either 'Male' or 'Female'")
+
+        # ✅ Validate title
+        if title:
+            title = title.strip().capitalize()
+            if title not in ["Dr", "Prof"]:
+                raise BadRequest("Title must be either 'Dr' or 'Prof'")
+        else:
+            title = None  # default if not provided
+
+        # ✅ Check duplicates (reg_no, phone, email)
+        if lecturers.find_one({"reg_no": reg_no}):
+            raise BadRequest("A lecturer with this registration number already exists")
+
+        if lecturers.find_one({"phone_number": phone_number}):
+            raise BadRequest("A lecturer with this phone number already exists")
+
+        if lecturers.find_one({"email": email}):
+            raise BadRequest("A lecturer with this email already exists")
+
+        # ✅ Default password (six zeros)
+        default_password = "000000"
+
+        # ✅ Hash the password
+        hashed_password = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+        # ✅ Save new lecturer
+        new_lecturer = {
+            "reg_no": reg_no,   # 🔑 Primary Key
+            "surname": surname,
+            "first_name": first_name,
+            "other_names": other_names,
+            "phone_number": phone_number,
+            "email": email,
+            "gender": normalize_word(gender),
+            "title": title,
+            "role": "lecturer",
+            "password": hashed_password
+        }
+        lecturers.insert_one(new_lecturer)
+
+        return jsonify({
+            "message": "Lecturer registered successfully (no email sent)"
+        })
+
+
+# ✅ Register endpoint (NoMail)
+api.add_resource(RegisterLecturerNoMail, "/api/v1/register_lecturer_no_mail")
