@@ -987,3 +987,45 @@ class StudentViewAllLecturers(Resource):
 
 # Route
 api.add_resource(StudentViewAllLecturers, "/Student/view_all_lecturers")
+
+
+class ChangePasswordNoMal(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("reg_no", type=str, required=True, help="Registration number is required")
+        self.parser.add_argument("previous_password", type=str, required=True, help="Previous password is required")
+        self.parser.add_argument("new_password", type=str, required=True, help="New password is required")
+
+    def post(self):
+        args = self.parser.parse_args()
+
+        # Normalize input
+        reg_no = args["reg_no"].strip().upper()
+        previous_password = args["previous_password"]
+        new_password = args["new_password"]
+
+        # ✅ Check if student exists
+        student = members.find_one({"reg_no": reg_no})
+        if not student:
+            raise BadRequest("Student with this registration number does not exist")
+
+        # ✅ Verify previous password
+        if not bcrypt.checkpw(previous_password.encode("utf-8"), student["password"].encode("utf-8")):
+            raise BadRequest("Previous password is incorrect")
+
+        # ✅ Hash the new password
+        hashed_password = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+        # ✅ Update password
+        members.update_one(
+            {"reg_no": reg_no},
+            {"$set": {"password": hashed_password}}
+        )
+
+        return {
+            "message": "Password changed successfully"
+        }, 200
+
+
+# Register endpoint
+api.add_resource(ChangePasswordNoMal, "/api/change-password_NoMail")
