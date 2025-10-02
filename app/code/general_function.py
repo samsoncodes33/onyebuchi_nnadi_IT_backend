@@ -120,9 +120,6 @@ class GetAnnouncement(Resource):
 api.add_resource(GetAnnouncement, "/get/announcement")
 
 
-from flask import request
-from flask_restful import Resource
-
 class GetStudentsByGender(Resource):
     def post(self):
         try:

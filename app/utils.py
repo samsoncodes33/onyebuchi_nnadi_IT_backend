@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta, timezone as pythontz
 members = mongo.db.Students_name
 announcement = mongo.db.Announcement
 lecturers = mongo.db.Lecturers
+student_view_lecturers = mongo.db.Student_view_lecturers
 
 
 def is_valid_gmail(email: str) -> bool:

@@ -963,3 +963,27 @@ class SortedStudentsSummary(Resource):
 # Route
 api.add_resource(SortedStudentsSummary, "/students/summary-sorted")
 
+
+class StudentViewAllLecturers(Resource):
+    def get(self):
+        try:
+            # Fetch all lecturers from the collection
+            lecturers = list(student_view_lecturers.find(
+                {},
+                {"_id": 0}  # Exclude MongoDB's default _id field
+            ))
+
+            if not lecturers:
+                return {"message": "No lecturers found"}, 404
+
+            # Optional: sort alphabetically by lecturer name
+            lecturers.sort(key=lambda l: l.get("name", "").lower())
+
+            return {"lecturers": lecturers}, 200
+
+        except Exception as e:
+            return {"error": str(e)}, 500
+
+
+# Route
+api.add_resource(StudentViewAllLecturers, "/Student/view_all_lecturers")
