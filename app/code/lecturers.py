@@ -616,3 +616,45 @@ class RegisterLecturerNoMail(Resource):
 
 # ✅ Register endpoint (NoMail)
 api.add_resource(RegisterLecturerNoMail, "/api/v1/register_lecturer_no_mail")
+
+
+class ChangeLecturerPasswordNoMail(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("reg_no", type=str, required=True, help="Registration number is required")
+        self.parser.add_argument("previous_password", type=str, required=True, help="Previous password is required")
+        self.parser.add_argument("new_password", type=str, required=True, help="New password is required")
+
+    def post(self):
+        args = self.parser.parse_args()
+
+        # 🆔 Extract parameters
+        reg_no = args["reg_no"].strip().upper()
+        previous_password = args["previous_password"]
+        new_password = args["new_password"]
+
+        # 🔎 Check lecturer existence by registration number
+        lecturer = lecturers.find_one({"reg_no": reg_no})
+        if not lecturer:
+            return {"message": "Lecturer not found"}, 404
+
+        # 🔑 Verify old password
+        if not bcrypt.checkpw(previous_password.encode("utf-8"), lecturer["password"].encode("utf-8")):
+            return {"message": "Previous password is incorrect"}, 400
+
+        # 🔒 Hash new password
+        hashed_password = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+        # 📝 Update DB
+        lecturers.update_one(
+            {"reg_no": reg_no},
+            {"$set": {"password": hashed_password}}
+        )
+
+        return jsonify({
+            "message": "Password updated successfully"
+        })
+
+
+# ✅ Register endpoint
+api.add_resource(ChangeLecturerPasswordNoMail, "/api/lecturer/change_password_NoMail")
