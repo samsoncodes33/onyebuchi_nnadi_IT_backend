@@ -162,27 +162,3 @@ class GetStudentsByGender(Resource):
 
 # Route
 api.add_resource(GetStudentsByGender, "/students/by-gender")
-
-
-class GetExcos(Resource):
-    def get(self):
-        # Fetch excos only, exclude _id and password
-        excos = list(members.find(
-            {"role": {"$regex": "^exco$", "$options": "i"}},
-            {"_id": 0, "password": 0}
-        ))
-        if not excos:
-            return {"message": "No excos found"}, 404
-
-        # Sort excos alphabetically by surname
-        excos = sorted(excos, key=lambda e: e.get("surname", "").lower())
-
-        # Return JSON response with total count
-        return {
-            "total_excos": len(excos),
-            "excos": excos
-        }, 200
-
-
-# Route
-api.add_resource(GetExcos, "/excos/all")
