@@ -36,11 +36,17 @@ class Announcement(Resource):
         if role not in allowed_roles:
             return {"error": "Access denied: only Exco or Lecturer can create announcements"}, 403
 
-        # ✅ Extract name (works for both members and lecturers)
+        # ✅ Extract full name (include title if lecturer)
+        title = user.get("title", "")
         surname = user.get("surname", "")
         first_name = user.get("first_name", "")
         other_names = user.get("other_names", "")
-        full_name = " ".join([surname, first_name, other_names]).strip()
+
+        # If user is lecturer, prefix title to name
+        if role == "lecturer" and title:
+            full_name = f"{title} {surname} {first_name} {other_names}".strip()
+        else:
+            full_name = " ".join([surname, first_name, other_names]).strip()
 
         # ✅ Prevent duplicate announcements
         existing_announcement = announcement.find_one({
@@ -65,7 +71,6 @@ class Announcement(Resource):
 
 # ✅ Register route
 api.add_resource(Announcement, "/announcement")
-
 
 
 class GetAllMembersAndCount(Resource):
