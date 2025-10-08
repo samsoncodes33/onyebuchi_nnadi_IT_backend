@@ -658,3 +658,114 @@ class ChangeLecturerPasswordNoMail(Resource):
 
 # ✅ Register endpoint
 api.add_resource(ChangeLecturerPasswordNoMail, "/api/lecturer/change_password_NoMail")
+
+
+class DemoteExcoNoMail(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("email", type=str, required=True, help="Lecturer email is required")
+        self.parser.add_argument("password", type=str, required=True, help="Lecturer password is required")
+        self.parser.add_argument("reg_no", type=str, required=True, help="Student reg_no is required")
+
+    def post(self):
+        args = self.parser.parse_args()
+
+        email = normalize_email(args["email"])
+        password = args["password"]
+        reg_no = args["reg_no"].strip().upper()
+
+        # ✅ Check lecturer exists
+        lecturer = lecturers.find_one({"email": email})
+        if not lecturer:
+            raise BadRequest("Lecturer not found")
+
+        # ✅ Verify lecturer role
+        if lecturer.get("role") != "lecturer":
+            raise BadRequest("Only lecturers can perform this action")
+
+        # ✅ Verify lecturer password
+        if not bcrypt.checkpw(password.encode("utf-8"), lecturer["password"].encode("utf-8")):
+            raise BadRequest("Invalid password")
+
+        # ✅ Check if student exists
+        student = members.find_one({"reg_no": reg_no})
+        if not student:
+            raise BadRequest("Student not found")
+
+        # ✅ Validate student role
+        student_role = student.get("role", "").lower()
+        if student_role not in ["exco", "student"]:
+            raise BadRequest("Invalid role for student. Must be 'exco' or 'student'")
+
+        if student_role == "student":
+            return jsonify({"message": "This user is already a student"})
+
+        # ✅ Update role from exco → student
+        members.update_one(
+            {"reg_no": reg_no},
+            {"$set": {"role": "Student"}}
+        )
+
+        return jsonify({
+            "message": f"Student with reg_no {reg_no} has been demoted from Exco to Student"
+        })
+
+
+# ✅ Add endpoint
+api.add_resource(DemoteExcoNoMail, "/api/demote/student_NoMail")
+
+
+class PromoteStudentNoMail(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("email", type=str, required=True, help="Lecturer email is required")
+        self.parser.add_argument("password", type=str, required=True, help="Lecturer password is required")
+        self.parser.add_argument("reg_no", type=str, required=True, help="Student reg_no is required")
+
+    def post(self):
+        args = self.parser.parse_args()
+
+        email = normalize_email(args["email"])
+        password = args["password"]
+        reg_no = args["reg_no"].strip().upper()
+
+        # ✅ Check lecturer exists
+        lecturer = lecturers.find_one({"email": email})
+        if not lecturer:
+            raise BadRequest("Lecturer not found")
+
+        # ✅ Verify lecturer role
+        if lecturer.get("role") != "lecturer":
+            raise BadRequest("Only lecturers can perform this action")
+
+        # ✅ Verify lecturer password
+        if not bcrypt.checkpw(password.encode("utf-8"), lecturer["password"].encode("utf-8")):
+            raise BadRequest("Invalid password")
+
+        # ✅ Check if student exists
+        student = members.find_one({"reg_no": reg_no})
+        if not student:
+            raise BadRequest("Student not found")
+
+        # ✅ Validate student role
+        student_role = student.get("role", "").lower()
+        if student_role not in ["exco", "student"]:
+            raise BadRequest("Invalid role for student. Must be 'exco' or 'student'")
+
+        # ✅ Check if already Exco
+        if student_role == "exco":
+            return jsonify({"message": "This student is already an Exco"})
+
+        # ✅ Update role from student → exco
+        members.update_one(
+            {"reg_no": reg_no},
+            {"$set": {"role": "Exco"}}
+        )
+
+        return jsonify({
+            "message": f"Student with reg_no {reg_no} has been promoted from Student to Exco"
+        })
+
+
+# ✅ Add endpoint
+api.add_resource(PromoteStudentNoMail, "/api/promote/student_NoMail")
