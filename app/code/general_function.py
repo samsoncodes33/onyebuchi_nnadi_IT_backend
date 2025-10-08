@@ -7,7 +7,7 @@ from flask import Flask, request
 from flask_restful import Api, Resource
 from pymongo import MongoClient
 import datetime
-import pytz  
+
 
 class Announcement(Resource):
     def post(self):
@@ -18,24 +18,25 @@ class Announcement(Resource):
         if not phone_number or not announcement_text:
             return {"error": "phone_number and announcement are required"}, 400
 
-        # Try finding user in 'members' collection first
+        # ✅ Try finding user in 'members' collection first
         user = members.find_one({"phone_number": phone_number})
 
-        # If not found, check 'lecturers' collection
+        # ✅ If not found, check 'lecturers' collection
         if not user:
             user = lecturers.find_one({"phone_number": phone_number})
 
-        # If still not found, return error
+        # ✅ If still not found, return error
         if not user:
             return {"error": "User not found in members or lecturers collection."}, 404
 
-        # Get role (default to 'member' if not provided)
+        # ✅ Get role (default to 'member' if not provided)
         role = user.get("role", "").lower()
         allowed_roles = ["exco", "lecturer"]
+
         if role not in allowed_roles:
             return {"error": "Access denied: only Exco or Lecturer can create announcements"}, 403
 
-        # Extract full name (include title if lecturer)
+        # ✅ Extract full name (include title if lecturer)
         title = user.get("title", "")
         surname = user.get("surname", "")
         first_name = user.get("first_name", "")
@@ -47,29 +48,28 @@ class Announcement(Resource):
         else:
             full_name = " ".join([surname, first_name, other_names]).strip()
 
-        # Prevent duplicate announcements
-        existing_announcement = announcement.find_one({"announcement_text": announcement_text})
+        # ✅ Prevent duplicate announcements
+        existing_announcement = announcement.find_one({
+            "announcement_text": announcement_text
+        })
         if existing_announcement:
             return {"error": "This announcement has already been posted"}, 409
 
-        # ✅ Use Nigeria local time (UTC+1)
-        nigeria_tz = pytz.timezone("Africa/Lagos")
-        local_time = datetime.datetime.now(nigeria_tz)
-
-        # Save announcement to MongoDB
+        # ✅ Save announcement to MongoDB
         announcement_doc = {
             "phone_number": phone_number,
             "role": role,
             "name": full_name,
             "announcement_text": announcement_text,
             "announcement": f"{full_name} says: {announcement_text}",
-            "created_at": local_time  # <-- Correct local time
+            "created_at": datetime.datetime.utcnow()
         }
         announcement.insert_one(announcement_doc)
 
         return {"message": "Announcement posted successfully"}, 201
 
-# Register route
+
+# ✅ Register route
 api.add_resource(Announcement, "/announcement")
 
 
