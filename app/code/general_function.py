@@ -18,37 +18,42 @@ class Announcement(Resource):
         if not phone_number or not announcement_text:
             return {"error": "phone_number and announcement are required"}, 400
 
-        # Find the user in members collection
-        member = members.find_one({"phone_number": phone_number})
+        # ✅ Try finding user in 'members' collection first
+        user = members.find_one({"phone_number": phone_number})
 
-        if not member:
-            return {"error": "Member not found"}, 404
+        # ✅ If not found, check 'lecturers' collection
+        if not user:
+            user = lecturers.find_one({"phone_number": phone_number})
 
-        role = member.get("role", "").lower()
+        # ✅ If still not found, return error
+        if not user:
+            return {"error": "User not found in members or lecturers collection."}, 404
+
+        # ✅ Get role (default to 'member' if not provided)
+        role = user.get("role", "").lower()
         allowed_roles = ["exco", "lecturer"]
 
         if role not in allowed_roles:
             return {"error": "Access denied: only Exco or Lecturer can create announcements"}, 403
 
-        # Extract student name
-        surname = member.get("surname", "")
-        first_name = member.get("first_name", "")
-        other_names = member.get("other_names", "")
+        # ✅ Extract name (works for both members and lecturers)
+        surname = user.get("surname", "")
+        first_name = user.get("first_name", "")
+        other_names = user.get("other_names", "")
         full_name = " ".join([surname, first_name, other_names]).strip()
 
-        # Check for duplicate announcement
+        # ✅ Prevent duplicate announcements
         existing_announcement = announcement.find_one({
             "announcement_text": announcement_text
         })
-
         if existing_announcement:
             return {"error": "This announcement has already been posted"}, 409
 
-        # Store announcement in MongoDB
+        # ✅ Save announcement to MongoDB
         announcement_doc = {
             "phone_number": phone_number,
             "role": role,
-            "student_name": full_name,
+            "name": full_name,
             "announcement_text": announcement_text,
             "announcement": f"{full_name} says: {announcement_text}",
             "created_at": datetime.datetime.utcnow()
@@ -58,8 +63,9 @@ class Announcement(Resource):
         return {"message": "Announcement posted successfully"}, 201
 
 
-# Add resource to API
+# ✅ Register route
 api.add_resource(Announcement, "/announcement")
+
 
 
 class GetAllMembersAndCount(Resource):
