@@ -814,29 +814,23 @@ class StudentLogin(Resource):
         # ✅ Check if student exists
         student = members.find_one({"reg_no": reg_no})
         if not student:
-            raise BadRequest("Invalid registration number or password")
+            raise BadRequest("Invalid registration number")
 
         # ✅ Verify password
         stored_password = student.get("password")
         if not stored_password or not bcrypt.checkpw(password.encode("utf-8"), stored_password.encode("utf-8")):
-            raise BadRequest("Invalid registration number or password")
-
-        # Optional: Generate JWT token
-        # token = create_jwt_for_student(student)  # implement JWT generation separately if needed
+            raise BadRequest("Invalid password")
 
         # ✅ Return student info (excluding password)
-        student_info = {k: v for k, v in student.items() if k != "password" and k != "_id"}
+        student_info = {k: v for k, v in student.items() if k not in ("password", "_id")}
 
         return jsonify({
             "message": "Login successful",
             "student": student_info,
-            # "token": token  # include if JWT is implemented
         })
-
 
 # ✅ Add endpoint
 api.add_resource(StudentLogin, "/api/student/login")
-
 
 
 class RegisterStudentNoMail(Resource):
