@@ -138,27 +138,37 @@ class GetStudentsByGender(Resource):
             if not request.is_json:
                 return {"error": "Request body must be JSON"}, 400
 
-            data = request.get_json(silent=True)
-            gender = data.get("gender", "").strip().lower()
+            data = request.get_json(silent=True) or {}
+            gender = str(data.get("gender", "")).strip().lower()
             if gender not in ["male", "female"]:
                 return {"error": "Invalid gender. Provide 'male' or 'female'."}, 400
 
             # Fetch students filtered by gender
-            students_by_gender = list(members.find(
-                {"gender": {"$regex": f"^{gender}$", "$options": "i"}},
-                {"_id": 0, "password": 0}  # Exclude sensitive fields
-            ))
+            students_by_gender = list(
+                members.find(
+                    {"gender": {"$regex": f"^{gender}$", "$options": "i"}},
+                    {"_id": 0, "password": 0}
+                )
+            )
 
             if not students_by_gender:
                 return {"message": f"No students found for gender: {gender}"}, 404
 
-            # Optionally sort alphabetically by surname
+            # 🔧 FIX: safely convert datetime fields WITHOUT imports
+            for student in students_by_gender:
+                for key, value in student.items():
+                    # datetime objects from MongoDB have isoformat()
+                    if hasattr(value, "isoformat"):
+                        student[key] = value.isoformat()
+
+            # Sort alphabetically by surname
             students_by_gender.sort(key=lambda s: s.get("surname", "").lower())
 
             return {"students": students_by_gender}, 200
 
         except Exception as e:
             return {"error": str(e)}, 500
+
 
 # Route
 api.add_resource(GetStudentsByGender, "/students/by-gender")

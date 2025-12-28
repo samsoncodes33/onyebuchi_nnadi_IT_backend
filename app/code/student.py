@@ -934,28 +934,33 @@ class SortedStudentsSummary(Resource):
         if not students:
             return {"message": "No students found"}, 404
 
-        # Sort students alphabetically by surname
-        students_sorted = sorted(students, key=lambda s: s.get("surname", "").lower())
+        # Convert datetime fields to string
+        for student in students:
+            for key, value in student.items():
+                if isinstance(value, datetime):
+                    student[key] = value.isoformat()
 
-        # Count male and female separately
+        # Sort students alphabetically by surname
+        students_sorted = sorted(
+            students,
+            key=lambda s: s.get("surname", "").lower()
+        )
+
+        # Count male and female
         male_count = sum(1 for s in students_sorted if s.get("gender", "").lower() == "male")
         female_count = sum(1 for s in students_sorted if s.get("gender", "").lower() == "female")
 
-        # Total students
-        total_students = len(students_sorted)
-
-        response_data = {
-            "total_students": total_students,
+        return {
+            "total_students": len(students_sorted),
             "male": male_count,
             "female": female_count,
-            "students": students_sorted  # keep the sorted students
-        }
-
-        return response_data, 200
+            "students": students_sorted
+        }, 200
 
 
 # Route
 api.add_resource(SortedStudentsSummary, "/students/summary-sorted")
+
 
 
 class StudentViewAllLecturers(Resource):
